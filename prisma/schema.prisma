@@ -1,0 +1,112 @@
+// Enum for user roles
+enum Role {
+  USER
+  ADMIN
+  DONOR
+}
+
+// Datasource configuration for MySQL
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Prisma client generation
+generator client {
+  provider = "prisma-client-js"
+}
+
+// User model
+model User {
+  id                  Int                  @id @default(autoincrement())
+  name                String
+  email               String               @unique
+  password            String
+  role                Role                 @default(USER)
+  patientTransactions PatientTransaction[] @relation("UserPatientTransactions")
+  bloodRequests       BloodRequest[]       @relation("UserBloodRequests")
+  requests            Request[]            @relation("UserRequests")
+  contactForms        ContactForm[]        @relation("UserContactForms")
+}
+
+// Donor model
+model Donor {
+  id           Int                  @id @default(autoincrement())
+  name         String
+  bloodGroup   String
+  donationDate DateTime
+  email        String               @unique
+  bloodStock   BloodStock[]         @relation("DonorBloodStocks")
+  transactions PatientTransaction[] @relation("DonorTransactions")
+}
+
+// BloodStock model
+model BloodStock {
+  id         Int      @id @default(autoincrement())
+  bloodGroup String
+  amount     Int
+  updatedAt  DateTime @updatedAt
+  donorId    Int
+  donor      Donor    @relation("DonorBloodStocks", fields: [donorId], references: [id])
+}
+
+// PatientTransaction model
+model PatientTransaction {
+  id              Int      @id @default(autoincrement())
+  transactionDate DateTime
+  amount          Int
+  donorId         Int
+  donor           Donor    @relation("DonorTransactions", fields: [donorId], references: [id])
+  patientId       Int
+  patient         Patient  @relation("PatientTransactions", fields: [patientId], references: [id])
+  userId          Int
+  user            User     @relation("UserPatientTransactions", fields: [userId], references: [id])
+}
+
+// Patient model
+model Patient {
+  id              Int                  @id @default(autoincrement())
+  name            String
+  age             Int
+  bloodGroup      String
+  medicalHistory  String?
+  patientRequests BloodRequest[]       @relation("PatientBloodRequests")
+  transactions    PatientTransaction[] @relation("PatientTransactions")
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+}
+
+// BloodRequest model
+model BloodRequest {
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String
+  bloodGroup String
+  userId     Int
+  user       User     @relation("UserBloodRequests", fields: [userId], references: [id])
+  patientId  Int?
+  patient    Patient? @relation("PatientBloodRequests", fields: [patientId], references: [id])
+}
+
+// Request model
+model Request {
+  id        Int      @id @default(autoincrement())
+  bloodType String
+  quantity  Int
+  reason    String
+  userId    Int
+  user      User     @relation("UserRequests", fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+// ContactForm model
+model ContactForm {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  subject   String
+  message   String
+  createdAt DateTime @default(now())
+  userId    Int
+  user      User     @relation("UserContactForms", fields: [userId], references: [id])
+}
